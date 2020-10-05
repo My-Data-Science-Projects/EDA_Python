@@ -1,1 +1,217 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+ 
+df = pd.read_json('https://www.mohfw.gov.in/data/datanew.json')
+df1 = pd.DataFrame(df)
+df1.head()
+
+df2 = df1.iloc[:-1,1:-1]
+df2.tail()
+
+df2.columns
+
+total_states = np.arange(len(df2['state_name']))
+total_states
+
+df3 = df2.set_index('state_name',drop=True)
+df3.head()
+
+act = df3.loc['West Bengal']['active']
+act
+
+act1 = df3.loc['Maharashtra']['active']
+act1
+
+act2 = df3.loc['Manipur']['active']
+act2
+
+%matplotlib notebook
+
+names = ['West Bengal', 'Maharashtra']
+values = act, act1
+ 
+plt.figure(figsize=(12, 4))
+plt.subplot(121)
+plt.bar(names, values)
+
+plt.title('Active Cases')
+plt.show()
+
+%matplotlib notebook
+
+labels = ["States"]
+st1 = act
+st2 = act1
+ 
+x = np.arange(len(labels))  # the label locations
+width = 0.35  # the width of the bars
+ 
+fig, ax = plt.subplots()
+rects1 = ax.bar(x - width/2, st1, width, label='West Bengal')
+rects2 = ax.bar(x + width/2, st2, width, label='Maharashtra')
+ 
+# Add some text for labels, title and custom x-axis tick labels, etc.
+ax.set_ylabel('Counts')
+ax.set_title('COVID Cases Stats')
+ax.set_xticks(x)
+ax.set_xticklabels(labels)
+ax.legend()
+ 
+ 
+def autolabel(rects):
+    """Attach a text label above each bar in *rects*, displaying its height."""
+    for rect in rects:
+        height = rect.get_height()
+        ax.annotate('{}'.format(height),
+                    xy=(rect.get_x() + rect.get_width() / 2, height),
+                    xytext=(0, 3),  # 3 points vertical offset
+                    textcoords="offset points",
+                    ha='center', va='bottom')
+ 
+ 
+autolabel(rects1)
+autolabel(rects2) 
+ 
+fig.tight_layout()
+ 
+plt.show()
+
+%matplotlib notebook
+
+names = ['West Bengal', 'Maharashtra', 'Manipur']
+values = act, act1, act2
+x_pos = [i for i, n in enumerate(names)]
+ 
+fig, ax = plt.subplots()
+rects1 = ax.bar(x_pos, values, color=['#FF00FF','#2ECC71','#BFFF00'])
+ 
+plt.xlabel("States")
+plt.ylabel("Counts")
+plt.title("COVID Stats")
+plt.xticks(x_pos, names)
+#plt.minorticks_on()
+#plt.grid(which='major', linestyle='-', linewidth='0.5', color='red')
+# Customize the minor grid
+#plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+ 
+ 
+def autolabel(rects):
+    """
+    Attach a text label above each bar displaying its height
+    """
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width()/2, height,
+                int(height),ha='center', va='bottom')
+        
+        
+autolabel(rects1)
+ 
+plt.show()
+
+act3 = df3.loc[['Uttarakhand','Kerala','Maharashtra','West Bengal']]['active']
+act3
+
+act4 = df3.loc[['Madhya Pradesh','Manipur','Assam','Nagaland']]['active']
+act4
+
+grp = df3.loc[['Madhya Pradesh','Manipur','Assam','Nagaland']]
+grp
+
+%matplotlib notebook
+
+fig = plt.figure()
+ax = fig.add_axes([0,0,1,1])
+ax.axis('equal')
+
+st = ['Uttarakhand','Kerala','Maharashtra','West Bengal']
+explode = (0.2, 0, 0, 0)
+case = act3
+ax.pie(case, labels=st, autopct='%1.2f%%', colors=['#80FE00','#FECB00','#00FEAF','#FE34CD'], explode=explode, shadow=True)
+
+plt.show()
+
+%matplotlib notebook
+
+names = ['Madhya Pradesh','Manipur','Assam','Nagaland']
+values = act4
+x_pos = [i for i, n in enumerate(names)]
+ 
+fig, ax = plt.subplots()
+rects1 = ax.bar(x_pos, values, color=['#FECB00','#FF00AF','#BFFF00','#00FEAF'])
+ 
+plt.xlabel("States")
+plt.ylabel("Counts")
+plt.title("COVID Stats")
+plt.xticks(x_pos, names)
+#plt.minorticks_on()
+#plt.grid(which='major', linestyle='-', linewidth='0.5', color='red')
+# Customize the minor grid
+#plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
+ 
+ 
+def autolabel(rects):
+    """
+    Attach a text label above each bar displaying its height
+    """
+    for rect in rects:
+        height = rect.get_height()
+        ax.text(rect.get_x() + rect.get_width()/2, height,
+                int(height),ha='center', va='bottom')
+        
+        
+autolabel(rects1)
+ 
+plt.show()
+
+wb = df3.loc['West Bengal']
+wb
+
+%matplotlib notebook
+
+fig = plt.figure()
+ax = fig.add_axes([0,0,1,1])
+ax.axis('equal')
+
+col = dict(wb)
+
+ax.pie(wb, labels = col,autopct='%1.2f%%',
+       colors=['#80FE00','#FECB00','#00FEAF','#FE34CD','#2ECC71','#8E44AD','#EC7063','#34495E'])
+plt.show() 
+
+%matplotlib notebook
+
+df4 = df3.iloc[:,1:3]
+df4.plot.barh(color={"cured": "green", "positive": "red"},figsize=(10,10))
+
+from matplotlib.pyplot import figure
+%matplotlib notebook
+
+figure(figsize=(9, 6), dpi=80)
+plt.barh(total_states,df3['death'], align='center', alpha=0.5,  
+                 color='#2ECC71', edgecolor='#059643')
+    
+plt.yticks(total_states, df2['state_name'])  
+plt.xlim(1,max(df3['death'])+1000) 
+plt.xlabel('Death Number of Cases')  
+plt.title('Corona Virus Cases')  
+plt.show() 
+
+import seaborn as sns
+
+corr = df3.corr()
+corr
+
+import seaborn as sns
+
+fig, ax = plt.subplots(figsize=(7,5))
+sns.heatmap(corr, square=True)
+
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+g = sns.PairGrid(df3)
+g.map(plt.scatter);
+
 
