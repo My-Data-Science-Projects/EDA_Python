@@ -1,0 +1,300 @@
+# Titanic Dataset: Exploratory Data Analysis
+
+Here, we're going to do some exploratory data analysis.
+
+We'll try to find the answers of some arising questions. 
+
+### Let's Begin Now.
+
+import pandas as pd
+pd.options.display.max_columns = 100
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import warnings
+warnings.filterwarnings('ignore')
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+
+#Visualization Libraries
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.pylab as pylab
+import seaborn as sns
+
+#Configure Visualization Libraries
+%matplotlib inline
+mpl.style.use('ggplot')
+sns.set_style('white')
+pylab.rcParams['figure.figsize'] = 12,15
+
+### Read Data
+
+data = pd.read_csv('train.csv')
+data.columns = [c.lower() for c in data.columns]
+
+cat_cols = list(data.select_dtypes(include=['object']).columns)
+num_cols = list(data.select_dtypes(include=['number']).columns)
+print('Numeric columns:',num_cols)
+print('Categorical columns:',cat_cols)
+
+data.head(10)
+
+data.tail(10)
+
+data.sample(5)
+
+print('Shape of the train dataset {}'.format(data.shape))
+
+#Info About Dataset
+data.info()
+
+#### Observation:
+
+> ###### We noticed "age", "cabin" and "embarked" have some missing values.
+
+# Calculation To Find Missing data
+total = data.isnull().sum().sort_values(ascending=False)
+percent = (data.isnull().sum()/data.isnull().count()).sort_values(ascending=False)
+missing_data = pd.concat([total, percent], axis=1, keys=['Total', 'Percent'])
+
+# Visualization Of Missing Data
+plt.subplots(figsize=(15, 6))
+sns.barplot(x=missing_data.index, y=missing_data['Percent'])
+plt.xlabel('Features', fontsize=18)
+plt.ylabel('Missing Values Percent', fontsize=18)
+plt.title('Missing Data Percent', fontsize=20)
+
+# Dataframe of Missing Data
+missing_data.head()
+
+# Get discriptive statistics on "all" datatypes
+data.describe(include="all")
+
+# Get discriptive statistics on "number" datatypes
+data.describe(include = ['number'])
+
+## Applying Univariate and Multivariate Data Analysis using Graphical Representations
+
+### Univariate Analysis
+
+fig , axes = plt.subplots( 2, 4, figsize = (16,10) )
+
+sns.countplot('survived' , data = data, ax = axes[0,0])
+sns.countplot('pclass' , data = data, ax = axes[0,1])
+sns.countplot('sex' , data = data, ax = axes[0,2])
+sns.countplot('sibsp' , data = data, ax = axes[0,3])
+sns.countplot('parch' , data = data, ax = axes[1,0])
+sns.countplot('embarked' , data = data, ax = axes[1,1])
+
+sns.distplot(data['fare'] , kde = True , ax = axes[1,2])
+sns.distplot(data['age'].dropna() , kde = True , ax = axes[1,3])
+
+### Bivariate Analysis
+
+pclass_survival = data[data.survived == 1]
+pclass_survival.head()
+
+ax = pclass_survival.pclass.value_counts().plot(kind='bar', figsize=(10,7), fontsize=15, color = 'green');
+plt.xticks(np.arange(3), ['Pclass1' , 'Pclass3','Pclass2'] , rotation = 0)
+ax.set_alpha(0.8)
+ax.set_title("Survival Rate vs Class", fontsize=18)
+
+# Create a list to collect the plt.patches data
+totals = []
+
+# Find the values and append to list
+for i in ax.patches:
+    totals.append(i.get_height())
+
+# Set individual bar lables using above list
+total = sum(totals)
+
+# Set individual bar lables using above list
+for i in ax.patches:
+    # get_x pulls left or right; get_height pushes up or down
+    ax.text(i.get_x()+.04, i.get_height()-8, str(round((i.get_height()/total)*100, 2))+'%', fontsize=20, color='white')
+
+
+## Heatmap Of Missing data
+
+plt.figure(figsize=(10,6))
+sns.heatmap(data.isnull(), yticklabels=False, cbar=False, cmap='Wistia')
+
+## Data Cleaning
+
+##### We want to fill in missing age data instead of just dropping the missing age data rows. One way to do this is by filling in the mean age of all the passengers (imputation). However we can be smarter about this and check the average age by passenger class. For example:
+
+plt.figure(figsize=(12, 7))
+sns.boxplot(x='pclass', y='age', data=data, palette='winter')
+
+### Observation:
+#### We can see the wealthier passengers in the higher classes tend to be older, which makes sense. 
+#### We'll use these average age values to impute based on Pclass for Age.
+#### We noticed from above boxplot, average age of pclass1 = 37, pclass2 = 29 and pclass3 = 24
+
+def impute_age(cols):
+    age = cols[0]
+    pclass = cols[1]
+    
+    if pd.isnull(age):
+        
+        if pclass == 1:
+            return 37
+
+        elif pclass == 2:
+            return 29
+
+        else:
+            return 24
+
+    else:
+        return age
+
+#### Now apply above function 
+
+data['age'] = data[['age','pclass']].apply(impute_age, axis=1)
+
+#### Check Heatmap Again !
+
+plt.figure(figsize=(10,6))
+sns.heatmap(data.isnull(), yticklabels=False, cbar=False, cmap='Wistia')
+
+#### Great! Let's go ahead and drop the Cabin column and the row in Embarked that is NaN.
+
+data.drop('cabin', axis=1, inplace=True)
+
+pd.set_option('display.max_rows', data.shape[0]+1)
+data
+
+plt.figure(figsize=(10,6))
+data.dropna(inplace=True)
+sns.heatmap(data.isnull(), yticklabels=False, cbar=False, cmap='Wistia')
+
+data.info()
+
+### Multivariate Data Analysis
+
+#### There is a positive correlation between Fare and Survived and 
+#### negative correlation between Pclass and Survived, Fare and Pclass , Age and Pclass.
+
+colmap = plt.cm.coolwarm
+
+def matrix_corr( data , size = 10):
+    corr = data.corr()
+    plt.figure(figsize=(30,15))
+    plt.title('Titanic Dataset Correlation' , fontsize=28)
+    sns.heatmap(data.corr(), linewidths=0.1, vmax=1.0, square=True, cmap=colmap, linecolor='white', annot=True)
+
+matrix_corr(data , size = 10)
+
+### ** Note that the categorical features have been neglected in the correlation matrix.
+
+### Now, let's create a factorplot to check out the distribution of men, women and children belonging to different classes.
+
+sns.factorplot('pclass', data=data, hue='sex', kind='count')
+
+#### ** Notice that there are more male passengers than woman in the 3rd class than any other class.
+#### We can create a histogram from the dataset, to present the distribution of number passengers of different age groups.
+
+plt.figure(figsize=(10,6))
+sns.histplot(data.age, kde=True)
+
+### Check for age distribution according to different classes 
+
+fig = sns.FacetGrid(data, hue='pclass', aspect=3)
+fig.map(sns.kdeplot, 'age', shade=True)
+fig.set(xlim=(0, data.age.max()))
+fig.add_legend()
+
+#### Notice- As expected, first class has more older people than second and third classes
+
+# Male and Female age distribution using FacetGrid
+fig = sns.FacetGrid(data, hue='sex', aspect=3)
+fig.map(sns.kdeplot, 'age', shade=True)
+fig.set(xlim=(0, data.age.max()))
+fig.add_legend()
+
+### Where did the passengers come from?
+
+The Embarked feature contains data for the passengers port of embarkation (C = Cherbourg; Q = Queenstown; S = Southampton).
+
+sns.factorplot('embarked', data=data, hue='pclass', kind='count')
+
+##### Most of the passengers embarked from Southampton (including Jack and Rose, in the movie). Also interesting is that very less  first or second class passengers embarked from Queenstown, which can tell us something about the socio-economic status of the population of Queenstown.
+
+### Who was with their family?
+
+##### The SibsSP feature refers to the number of siblings or spouses that a passenger had aboard. Parch refers to the number of parents or children someone had on the ship.
+
+data['alone'] = data.apply(lambda x: 'No' if x.sibsp + x.parch > 0 else 'Yes', axis=1)
+data.head()
+
+sns.catplot('alone', data=data, kind='count')
+
+### What factors helped someone survive the sinking?
+
+print(data[['pclass','survived']].groupby('pclass').mean())
+print(data[['sex','survived']].groupby('sex').mean())
+
+sns.catplot('pclass', 'survived', data=data, kind='point')
+
+Unsurprisingly, lower class passengers had a lower chance of survival.
+<br>But, we saw earlier that there were more men than woman, in the 3rd class than in any other class. However, priority to the lifeboats were given to women and children.
+
+sns.catplot('pclass', 'survived', hue='sex', data=data, kind='point')
+sns.catplot('sex', 'survived', data=data, kind='point')
+
+### Notice- 
+Men had lower chances of survival than women and children, as they had lower priority of being saved.
+<br>We can generally say that men, women and children belonging to the 3rd class had a lesser chance at survival than their counterparts belonging to the 1st class.
+
+# dead and survived based on age of people
+
+figure = plt.figure(figsize=(15,8))
+plt.hist([data[data['survived']==1]['age'].dropna(), data[data['survived']==0]['age'].dropna()], 
+         color = ['g','r'], label = ['Survived','Dead'])
+plt.xlabel('Age')
+plt.ylabel('Number of passengers')
+plt.legend(fontsize = '16')
+
+sns.lmplot('age', 'survived', hue='pclass', data=data, aspect=2)
+
+#### ***The general conclusion from the above two figures seems to be that older people were less likely to survive.
+
+sns.catplot('survived', 'alone', data=data, kind='point')
+
+data['familysize'] = data['sibsp'] + data['parch'] + 1
+data[['familysize', 'survived']].groupby('familysize').mean()
+
+#### Observation: If you weren't alone on the ship, you had a higher chance of survival, than if you were all alone.
+
+sns.lmplot('fare', 'survived', data=data)
+
+#### Observation: Passengers with cheaper ticket fares are more likely to die. But, passengers with more expensive tickets was survived
+
+data[['embarked','survived']].groupby('embarked').mean()
+
+##### We observe that those embarked at Cherbourg have higher change of survival mainly this is because first class passengers were dominant in that port.
+
+plt.figure(figsize=(20, 10))
+ax = plt.subplot()
+
+ax.scatter(data[data['survived'] == 1]['age'], data[data['survived'] == 1]['fare'], 
+           c='green')
+ax.scatter(data[data['survived'] == 0]['age'], data[data['survived'] == 0]['fare'], 
+           c='red');
+
+ax.set_xlabel("Age", fontsize='15')
+ax.set_ylabel("Fare", fontsize='15')
+ax.set_xlim(0, data.age.max()+1)
+
+## Generally, those who survived were younger people and people with high fares.
+
+# After coompletion of exploring, we have created two new columns- 'alone' and 'familysize' for need to better explore.
+
+data.columns
+
+data.head()
+
+# THANK YOU FOR EXPLORING :-)
+
